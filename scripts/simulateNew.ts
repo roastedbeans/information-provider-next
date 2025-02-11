@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { faker } from '@faker-js/faker';
 import dayjs from 'dayjs';
+import { body, option } from 'framer-motion/client';
 
 export type BodyIA102 = {
 	sign_tx_id: string;
@@ -64,6 +65,99 @@ const otherOrgCode = 'ORG2025002';
 const clientId = 'ORG2025001-CLIENT-ID';
 const clientSecret = 'ORG2025001-CLIENT-SECRET';
 
+// Helper function to generate malicious content
+const generateMaliciousContent = () => {
+	const xssPayloads = [
+		'<script>alert("XSS")</script>',
+		'<img src="x" onerror="alert(\'XSS\')">',
+		'"><script>alert(document.cookie)</script>',
+		'<svg onload="alert(1)">',
+		'javascript:alert("XSS")//',
+	];
+
+	const maliciousCookieHeaders = [
+		'session="+alert(1)+"; Domain=.target.com',
+		'auth=admin; Path=/; HttpOnly=false',
+		'isAdmin=true; SameSite=None',
+		'_ga="><script>alert(1)</script>',
+		'JSESSIONID=1234; secure=false',
+		"token=' OR 1=1--",
+		"role=user'; role=admin",
+	];
+
+	const sqlInjectionPayloads = [
+		"' OR '1'='1",
+		"'; DROP TABLE users--",
+		"' UNION SELECT * FROM accounts--",
+		"' OR '1'='1' --",
+		"admin'--",
+	];
+
+	const xxePayloads = [
+		'<?xml version="1.0" encoding="ISO-8859-1"?><!DOCTYPE foo [<!ELEMENT foo ANY><!ENTITY xxe SYSTEM "file:///etc/passwd">]><foo>&xxe;</foo>',
+		'<?xml version="1.0" encoding="ISO-8859-1"?><!DOCTYPE foo [<!ELEMENT foo ANY><!ENTITY xxe SYSTEM "file:///dev/random">]><foo>&xxe;</foo>',
+	];
+
+	const directoryTraversalPayloads = [
+		'../../../etc/passwd',
+		'..\\..\\..\\windows\\system32\\cmd.exe',
+		'%2e%2e%2f%2e%2e%2f%2e%2e%2fetc%2fpasswd',
+		'....//....//....//etc/passwd',
+	];
+
+	const ssrfPayloads = [
+		'http://localhost:22',
+		'http://169.254.169.254/latest/meta-data/',
+		'http://127.0.0.1:3306',
+		'file:///etc/passwd',
+	];
+
+	const cookieInjectionPayloads = [
+		'document.cookie="session=admin123"',
+		'javascript:void(document.cookie="userRole=admin")',
+		'document.cookie="isAdmin=true; path=/"',
+	];
+
+	const toAttack = faker.datatype.boolean(0.1); // 10% chance of generating malicious content
+
+	if (toAttack) {
+		const attackType = faker.helpers.arrayElement([
+			'xssPayloads',
+			'sqlInjectionPayloads',
+			'xxePayloads',
+			'directoryTraversalPayloads',
+			'ssrfPayloads',
+			'cookieInjectionPayloads',
+			'maliciousCookieHeaders',
+		]);
+
+		return {
+			attackType,
+			xssPayloads: attackType === 'xssPayloads' && faker.helpers.arrayElement(xssPayloads),
+			sqlInjectionPayloads: attackType === 'sqlInjectionPayloads' && faker.helpers.arrayElement(sqlInjectionPayloads),
+			xxePayloads: attackType === 'xxePayloads' && faker.helpers.arrayElement(xxePayloads),
+			directoryTraversalPayloads:
+				attackType === 'directoryTraversalPayloads' && faker.helpers.arrayElement(directoryTraversalPayloads),
+			ssrfPayloads: attackType === 'ssrfPayloads' && faker.helpers.arrayElement(ssrfPayloads),
+			cookieInjectionPayloads:
+				attackType === 'cookieInjectionPayloads' && faker.helpers.arrayElement(cookieInjectionPayloads),
+			maliciousCookieHeaders:
+				attackType === 'maliciousCookieHeaders' && faker.helpers.arrayElement(maliciousCookieHeaders),
+		};
+	}
+
+	return {
+		attackType: '',
+		xssPayloads: undefined,
+		sqlInjectionPayloads: undefined,
+		xxePayloads: undefined,
+		directoryTraversalPayloads: undefined,
+		ssrfPayloads: undefined,
+		cookieInjectionPayloads: undefined,
+		maliciousCookieHeaders: undefined,
+	};
+};
+
 export const generateTIN = (prefix: string) => {
 	const date = new Date();
 
@@ -84,22 +178,52 @@ export function timestamp(date: Date): string {
 	return timestamp;
 }
 
+export const processPayload = (value: any) => {
+	const hasValue = faker.datatype.boolean(0.98); // 98% chance of having a value
+
+	if (hasValue) {
+		return value;
+	} else {
+		return '';
+	}
+};
+
 export const getIA101 = async () => {
+	const attackLocation = faker.helpers.arrayElement([
+		'User-Agent',
+		'X-CSRF-Token',
+		'x-api-tran-id',
+		'Cookie',
+		'Set-Cookie',
+		'grant_type',
+		'client_id',
+		'client_secret',
+		'scope',
+	]);
+	const attack = generateMaliciousContent();
+
 	try {
 		const options = {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/x-www-form-urlencoded',
-				'x-api-tran-id': generateTIN('IA101'),
+				'x-api-tran-id': processPayload(generateTIN('IA101')),
+				'X-CSRF-Token': (attackLocation === 'X-CSRF-Token' && attack?.xssPayloads) || '',
+				Cookie: (attackLocation === 'Cookie' && attack?.maliciousCookieHeaders) || '',
+				'Set-Cookie': (attackLocation === 'Set-Cookie' && attack?.maliciousCookieHeaders) || '',
+				'User-Agent': (attackLocation === 'User-Agent' && attack?.xssPayloads) || '',
+				'attack-type': attack?.attackType,
 			},
 			body: new URLSearchParams({
-				grant_type: 'client_credential',
-				client_id: clientId,
-				client_secret: clientSecret,
-				scope: 'ca',
+				grant_type:
+					(attackLocation === 'grant_type' && attack?.cookieInjectionPayloads) || processPayload('client_credential'),
+				client_id: (attackLocation === 'scope' && attack?.cookieInjectionPayloads) || processPayload(clientId),
+				client_secret:
+					(attackLocation === 'client_secret' && attack?.sqlInjectionPayloads) || processPayload(clientSecret),
+				scope: (attackLocation === 'scope' && attack?.xssPayloads) || processPayload('ca'),
 			}),
 		};
-		console.log('requesting token from certification authority');
+		console.log('requesting token from certification authority', options);
 		const response = await fetch('http://localhost:3000/api/oauth/2.0/token', options);
 
 		if (!response.ok) {
@@ -115,93 +239,157 @@ export const getIA101 = async () => {
 	}
 };
 
-// Normal simulation for IA102
 export const getIA102 = async (accessToken: string, body: BodyIA102) => {
-	const options = {
-		method: 'POST',
-		headers: {
-			'Access-Control-Allow-Origin': '*',
-			'Content-Type': 'application/json',
-			'x-api-tran-id': generateTIN('IA102'),
-			Authorization: `Bearer ${accessToken}`,
-		},
-		body: JSON.stringify(body),
-	};
+	const attackLocation = faker.helpers.arrayElement([
+		'User-Agent',
+		'X-CSRF-Token',
+		'x-api-tran-id',
+		'Cookie',
+		'Set-Cookie',
+	]);
+	const attack = generateMaliciousContent();
 
-	console.log('requesting sign request from certification authority');
-	const response = await fetch(`http://localhost:3000/api/ca/sign_request`, options);
-
-	if (!response.ok) {
-		// Handle HTTP errors
-		throw new Error(`HTTP error on IA102! Status: ${response.status}`);
-	}
-
-	const res = await response.json();
-
-	return res;
-};
-
-export const getIA103 = async (accessToken: string, body: BodyIA103) => {
-	const options = {
-		method: 'POST',
-		headers: {
-			'Access-Control-Allow-Origin': '*',
-			'Content-Type': 'application/json',
-			'x-api-tran-id': generateTIN('IA103'),
-			Authorization: `Bearer ${accessToken}`,
-		},
-		body: JSON.stringify(body),
-	};
-	console.log('requesting sign result from certification authority');
-	const response = await fetch(`http://localhost:3000/api/ca/sign_result`, options);
-
-	if (!response.ok) {
-		// Handle HTTP errors
-		throw new Error(`HTTP error on IA103! Status: ${response.status}`);
-	}
-
-	const res = await response.json();
-
-	return res;
-};
-
-export const getIA002 = async (body: BodyIA002) => {
-	// Assumption: Mydata app is looking for api of the bank with orgCode to get the access token
-
-	const options = {
-		method: 'POST',
-		headers: {
-			'Content-Type': 'application/x-www-form-urlencoded',
-			'x-api-tran-id': generateTIN('IA002'),
-		},
-		body: new URLSearchParams(body),
-	};
-
-	const response = await fetch(`${otherBankAPI}/api/oauth/2.0/token`, options);
-
-	if (!response.ok) {
-		// Handle HTTP errors
-		throw new Error(`HTTP error on IA002! Status: ${response.status}`);
-	}
-
-	const res = await response.json();
-
-	return res;
-};
-
-export async function getSupport001() {
 	try {
 		const options = {
 			method: 'POST',
 			headers: {
+				'Content-Type': 'application/json',
+				'X-CSRF-Token': (attackLocation === 'X-CSRF-Token' && attack?.xssPayloads) || '',
+				'x-api-tran-id':
+					(attackLocation === 'User-Agent' && attack?.xssPayloads) || processPayload(generateTIN('IA102')),
+				Cookie: (attackLocation === 'Cookie' && attack?.maliciousCookieHeaders) || '',
+				'Set-Cookie': (attackLocation === 'Set-Cookie' && attack?.maliciousCookieHeaders) || '',
+				'User-Agent': (attackLocation === 'User-Agent' && attack?.xssPayloads) || '',
+				'attack-type': attack?.attackType || '',
+				'Access-Control-Allow-Origin': '*',
+				Authorization: `Bearer ${processPayload(accessToken)}`,
+			},
+			body: JSON.stringify(body),
+		};
+
+		console.log('requesting sign request from certification authority', options);
+		const response = await fetch(`http://localhost:3000/api/ca/sign_request`, options);
+
+		if (!response.ok) {
+			// Handle HTTP errors
+			throw new Error(`HTTP error on IA102! Status: ${response.status}`);
+		}
+
+		const res = await response.json();
+		return res;
+	} catch (error) {
+		console.error('Error:', error);
+		throw error;
+	}
+};
+export const getIA103 = async (accessToken: string, body: BodyIA103) => {
+	try {
+		const attackLocation = faker.helpers.arrayElement(['User-Agent', 'x-api-tran-id', 'Cookie', 'Set-Cookie']);
+		const attack = generateMaliciousContent();
+
+		const options = {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				'x-api-tran-id': processPayload(generateTIN('IA103')),
+				Cookie: (attackLocation === 'Cookie' && attack?.maliciousCookieHeaders) || '',
+				'Set-Cookie': (attackLocation === 'Set-Cookie' && attack?.maliciousCookieHeaders) || '',
+				'User-Agent': (attackLocation === 'User-Agent' && attack?.xssPayloads) || '',
+				'attack-type': attack?.attackType || '',
+				'Access-Control-Allow-Origin': '*',
+				Authorization: `Bearer ${processPayload(accessToken)}`,
+			},
+			body: JSON.stringify(body),
+		};
+
+		console.log('requesting sign result from certification authority');
+		const response = await fetch(`http://localhost:3000/api/ca/sign_result`, options);
+
+		if (!response.ok) {
+			// Handle HTTP errors
+			throw new Error(`HTTP error on IA103! Status: ${response.status}`);
+		}
+
+		const res = await response.json();
+		return res;
+	} catch (error) {
+		console.error('Error:', error);
+		throw error;
+	}
+};
+export const getIA002 = async (body: BodyIA002) => {
+	try {
+		const attackLocation = faker.helpers.arrayElement([
+			'User-Agent',
+			'X-CSRF-Token',
+			'x-api-tran-id',
+			'Cookie',
+			'Set-Cookie',
+		]);
+		const attack = generateMaliciousContent();
+
+		const options = {
+			method: 'POST',
+			headers: {
 				'Content-Type': 'application/x-www-form-urlencoded',
-				'x-api-tran-id': generateTIN('SU001'),
+				'X-CSRF-Token': (attackLocation === 'X-CSRF-Token' && attack?.xssPayloads) || '',
+				'x-api-tran-id': processPayload(generateTIN('IA002')),
+				Cookie: (attackLocation === 'Cookie' && attack?.maliciousCookieHeaders) || '',
+				'Set-Cookie': (attackLocation === 'Set-Cookie' && attack?.maliciousCookieHeaders) || '',
+				'User-Agent': (attackLocation === 'User-Agent' && attack?.xssPayloads) || '',
+				'attack-type': attack?.attackType || '',
+			},
+			body: new URLSearchParams(body as any),
+		};
+
+		console.log('requesting access token from certification authority');
+		const response = await fetch(`${otherBankAPI}/api/oauth/2.0/token`, options);
+
+		if (!response.ok) {
+			// Handle HTTP errors
+			throw new Error(`HTTP error on IA002! Status: ${response.status}`);
+		}
+
+		const res = await response.json();
+		return res;
+	} catch (error) {
+		console.error('Error:', error);
+		throw error;
+	}
+};
+export async function getSupport001() {
+	try {
+		const attackLocation = faker.helpers.arrayElement([
+			'User-Agent',
+			'X-CSRF-Token',
+			'x-api-tran-id',
+			'Cookie',
+			'Set-Cookie',
+			'grant_type',
+			'client_id',
+			'client_secret',
+			'scope',
+		]);
+		const attack = generateMaliciousContent();
+
+		const options = {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/x-www-form-urlencoded',
+				'x-api-tran-id': processPayload(generateTIN('SU001')),
+				'X-CSRF-Token': (attackLocation === 'X-CSRF-Token' && attack?.xssPayloads) || '',
+				Cookie: (attackLocation === 'Cookie' && attack?.maliciousCookieHeaders) || '',
+				'Set-Cookie': (attackLocation === 'Set-Cookie' && attack?.maliciousCookieHeaders) || '',
+				'User-Agent': (attackLocation === 'User-Agent' && attack?.xssPayloads) || '',
+				'attack-type': attack?.attackType || '',
 			},
 			body: new URLSearchParams({
-				grant_type: 'client_credential',
-				client_id: clientId,
-				client_secret: clientSecret,
-				scope: 'manage',
+				grant_type:
+					(attackLocation === 'grant_type' && attack?.cookieInjectionPayloads) || processPayload('client_credential'),
+				client_id: (attackLocation === 'client_id' && attack?.cookieInjectionPayloads) || processPayload(clientId),
+				client_secret:
+					(attackLocation === 'client_secret' && attack?.sqlInjectionPayloads) || processPayload(clientSecret),
+				scope: (attackLocation === 'scope' && attack?.xssPayloads) || processPayload('manage'),
 			}),
 		};
 
@@ -221,30 +409,52 @@ export async function getSupport001() {
 }
 
 export async function getSupport002() {
-	const token = await getSupport001();
+	try {
+		const attackLocation = faker.helpers.arrayElement([
+			'User-Agent',
+			'x-api-tran-id',
+			'Cookie',
+			'Set-Cookie',
+			'timestamp',
+		]);
+		const attack = generateMaliciousContent();
 
-	const { access_token } = token;
+		const token = await getSupport001();
+		const { access_token } = token;
 
-	const options = {
-		method: 'GET',
-		headers: {
-			'Access-Control-Allow-Origin': '*',
-			'Content-Type': 'application/json',
-			'x-api-tran-id': generateTIN('SU002'),
-			Authorization: `Bearer ${access_token}`,
-		},
-	};
+		const options = {
+			method: 'GET',
+			headers: {
+				'Access-Control-Allow-Origin': '*',
+				'Content-Type': 'application/json',
+				'x-api-tran-id':
+					(attackLocation === 'x-api-tran-id' && attack?.xssPayloads) || processPayload(generateTIN('SU002')),
+				Cookie: (attackLocation === 'Cookie' && attack?.maliciousCookieHeaders) || '',
+				'Set-Cookie': (attackLocation === 'Set-Cookie' && attack?.maliciousCookieHeaders) || '',
+				'User-Agent': (attackLocation === 'User-Agent' && attack?.xssPayloads) || '',
+				'attack-type': attack?.attackType || '',
+				Authorization: `Bearer ${processPayload(access_token)}`,
+			},
+		};
 
-	const response = await fetch(`http://localhost:3000/api/v2/mgmts/orgs?search_timestamp=`, options);
+		const response = await fetch(
+			`http://localhost:3000/api/v2/mgmts/orgs?search_timestamp=${
+				(attackLocation === 'timestamp' && attack?.xssPayloads) || timestamp(new Date())
+			}`,
+			options
+		);
 
-	if (!response.ok) {
-		// Handle HTTP errors
-		throw new Error(`HTTP error! Status: ${response.status}`);
+		if (!response.ok) {
+			// Handle HTTP errors
+			throw new Error(`HTTP error! Status: ${response.status}`);
+		}
+
+		const res = await response.json();
+		return res;
+	} catch (error) {
+		console.error('Error:', error);
+		throw error;
 	}
-
-	const res = await response.json();
-
-	return res;
 }
 
 export const generateBodyIA102 = async (account: any) => {
@@ -313,11 +523,11 @@ export const generateBodyIA102 = async (account: any) => {
 		sign_tx_id: signTxId,
 		user_ci: b64UserCI,
 		real_name: fullName,
-		phone_num: phoneNum,
+		phone_num: processPayload(phoneNum),
 		request_title: requestTitle,
 		device_code: deviceCode,
 		device_browser: 'WB',
-		return_app_scheme_url: return_app_scheme_url,
+		return_app_scheme_url: processPayload(return_app_scheme_url),
 		consent_type: '1',
 		consent_cnt: consent_list.length,
 		consent_list: consent_list,
@@ -327,8 +537,6 @@ export const generateBodyIA102 = async (account: any) => {
 };
 
 export const generateBodyIA002 = async (certTxId: string, consent_list: any, signed_consent_list: any) => {
-	// Assumed that signed_consent is already decoded from base64
-
 	const txId = signed_consent_list[0].tx_id;
 
 	const orgCode = txId.split('_')[0];
@@ -391,13 +599,13 @@ export const generateBodyIA002 = async (certTxId: string, consent_list: any, sig
 	const b64Password = Buffer.from('PASSWORD').toString('base64');
 
 	const bodyIA002: BodyIA002 = {
-		tx_id: txId,
-		org_code: orgCode,
-		grant_type: 'password',
+		tx_id: processPayload(txId),
+		org_code: processPayload(orgCode),
+		grant_type: processPayload('password'),
 		client_id: oAuthClient.clientId,
 		client_secret: oAuthClient.clientSecret,
 		ca_code: caCode,
-		username: b64UserCI,
+		username: processPayload(b64UserCI),
 		request_type: '1',
 		password_len: b64Password.length.toString(),
 		password: b64Password,
@@ -410,7 +618,7 @@ export const generateBodyIA002 = async (certTxId: string, consent_list: any, sig
 		consent_nonce: generateNonce(),
 		ucpid_nonce: generateNonce(),
 		cert_tx_id: certTxId,
-		service_id: `${ipCode}${registrationDate}${serialNum}`, //institution code (10 digits) + registration date (8 digits) + serial number (4 digits)
+		service_id: processPayload(`${ipCode}${registrationDate}${serialNum}`), //institution code (10 digits) + registration date (8 digits) + serial number (4 digits)
 	};
 
 	return bodyIA002;

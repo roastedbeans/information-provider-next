@@ -63,14 +63,16 @@ const generateMaliciousContent = () => {
 		'document.cookie="isAdmin=true; path=/"',
 	];
 
+	const toAttack = faker.datatype.boolean(0.3); // 30% chance of generating malicious content
+
 	return {
-		xssPayloads: faker.helpers.arrayElement(xssPayloads),
-		sqlInjectionPayloads: faker.helpers.arrayElement(sqlInjectionPayloads),
-		xxePayloads: faker.helpers.arrayElement(xxePayloads),
-		directoryTraversalPayloads: faker.helpers.arrayElement(directoryTraversalPayloads),
-		ssrfPayloads: faker.helpers.arrayElement(ssrfPayloads),
-		cookieInjectionPayloads: faker.helpers.arrayElement(cookieInjectionPayloads),
-		maliciousCookieHeaders: faker.helpers.arrayElement(maliciousCookieHeaders),
+		xssPayloads: toAttack ? faker.helpers.arrayElement(xssPayloads) : '',
+		sqlInjectionPayloads: toAttack ? faker.helpers.arrayElement(sqlInjectionPayloads) : '',
+		xxePayloads: toAttack ? faker.helpers.arrayElement(xxePayloads) : '',
+		directoryTraversalPayloads: toAttack ? faker.helpers.arrayElement(directoryTraversalPayloads) : '',
+		ssrfPayloads: toAttack ? faker.helpers.arrayElement(ssrfPayloads) : '',
+		cookieInjectionPayloads: toAttack ? faker.helpers.arrayElement(cookieInjectionPayloads) : '',
+		maliciousCookieHeaders: toAttack ? faker.helpers.arrayElement(maliciousCookieHeaders) : '',
 	};
 };
 
@@ -175,6 +177,7 @@ const testCSRF = async (accessToken: string) => {
 			`' OR '1'='1`,
 			maliciousContent.xssPayloads,
 		]),
+		'attack-type': 'csrf/cookie-injection/xss',
 	};
 
 	// Attempt CSRF attack on various endpoints
@@ -237,6 +240,7 @@ async function simulateAttacks() {
 			headers: {
 				'Content-Type': 'application/json',
 				Authorization: `Bearer ${access_token}`,
+				'attack-type': 'xss/sql-injection/xxe/directory-traversal/ssrf/cookie-injection',
 			},
 			body: JSON.stringify(maliciousBodyIA102),
 		});
