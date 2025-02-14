@@ -10,6 +10,7 @@
 		"lint": "next lint",
 		"seedAccount": "ts-node scripts/seedAccount.ts",
 		"simulate": "ts-node scripts/simulateV2.ts",
+		"simulateNormal": "ts-node scripts/simulate.ts",
 		"attack": "ts-node scripts/attackSimulate.ts"
 	},
 	"dependencies": {

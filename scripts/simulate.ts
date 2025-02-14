@@ -59,20 +59,27 @@ export type SignedConsent = {
 
 const prisma = new PrismaClient();
 const otherBankAPI = 'http://localhost:4200';
-const orgCode = 'ORG2025001';
-const otherOrgCode = 'ORG2025002';
-const clientId = 'ORG2025001-CLIENT-ID';
-const clientSecret = 'ORG2025001-CLIENT-SECRET';
+const otherOrgCode = 'bond123456';
+const orgCode = 'anya123456';
+const caCode = 'certauth00';
+const orgSerialCode = 'anyaserial00';
+const clientId = 'anya123456clientid';
+const clientSecret = 'anya123456clientsecret';
 
-export const generateTIN = (prefix: string) => {
-	const date = new Date();
+export const generateTIN = (subject: string): string => {
+	//subject classification code
+	try {
+		const date = new Date();
+		// grant code 10 uppercase letters + numbers
+		const grantCode = faker.string.alphanumeric(14).toUpperCase();
 
-	const timestamp = date
-		.toISOString()
-		.replace(/[-:.TZ]/g, '')
-		.slice(0, 14); // YYYYMMDDHHMMSS
+		const xApiTranId = `${orgCode}${subject}${grantCode}`;
 
-	return prefix + timestamp;
+		return xApiTranId;
+	} catch (error) {
+		console.error('Error generating TIN:', error);
+		return '00000000000000';
+	}
 };
 
 export function timestamp(date: Date): string {
@@ -90,10 +97,10 @@ export const getIA101 = async () => {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/x-www-form-urlencoded',
-				'x-api-tran-id': generateTIN('IA101'),
+				'x-api-tran-id': generateTIN('S'),
 			},
 			body: new URLSearchParams({
-				grant_type: 'client_credential',
+				grant_type: 'client_credentials',
 				client_id: clientId,
 				client_secret: clientSecret,
 				scope: 'ca',
@@ -122,7 +129,7 @@ export const getIA102 = async (accessToken: string, body: BodyIA102) => {
 		headers: {
 			'Access-Control-Allow-Origin': '*',
 			'Content-Type': 'application/json',
-			'x-api-tran-id': generateTIN('IA102'),
+			'x-api-tran-id': generateTIN('S'),
 			Authorization: `Bearer ${accessToken}`,
 		},
 		body: JSON.stringify(body),
@@ -147,7 +154,7 @@ export const getIA103 = async (accessToken: string, body: BodyIA103) => {
 		headers: {
 			'Access-Control-Allow-Origin': '*',
 			'Content-Type': 'application/json',
-			'x-api-tran-id': generateTIN('IA103'),
+			'x-api-tran-id': generateTIN('S'),
 			Authorization: `Bearer ${accessToken}`,
 		},
 		body: JSON.stringify(body),
@@ -172,7 +179,7 @@ export const getIA002 = async (body: BodyIA002) => {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/x-www-form-urlencoded',
-			'x-api-tran-id': generateTIN('IA002'),
+			'x-api-tran-id': generateTIN('S'),
 		},
 		body: new URLSearchParams(body),
 	};
@@ -195,10 +202,10 @@ export async function getSupport001() {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/x-www-form-urlencoded',
-				'x-api-tran-id': generateTIN('SU001'),
+				'x-api-tran-id': generateTIN('S'),
 			},
 			body: new URLSearchParams({
-				grant_type: 'client_credential',
+				grant_type: 'client_credentials',
 				client_id: clientId,
 				client_secret: clientSecret,
 				scope: 'manage',
@@ -230,7 +237,7 @@ export async function getSupport002() {
 		headers: {
 			'Access-Control-Allow-Origin': '*',
 			'Content-Type': 'application/json',
-			'x-api-tran-id': generateTIN('SU002'),
+			'x-api-tran-id': generateTIN('S'),
 			Authorization: `Bearer ${access_token}`,
 		},
 	};
@@ -250,9 +257,9 @@ export async function getSupport002() {
 export const generateBodyIA102 = async (account: any) => {
 	// Fetch accounts that belong to the organization
 
-	const caCode = faker.helpers.arrayElement(['CA20250001']);
+	const caCode = faker.helpers.arrayElement(['certauth00']);
 	const newTimestamp = timestamp(new Date());
-	const serialNum = faker.helpers.arrayElement(['BASA20240204', 'BABB20230106']);
+	const serialNum = faker.helpers.arrayElement(['anyaserial00', 'bondserial00']);
 
 	const signTxId = `${orgCode}_${caCode}_${newTimestamp}_${serialNum}`;
 
@@ -275,11 +282,11 @@ export const generateBodyIA102 = async (account: any) => {
 	const deviceCode = faker.helpers.arrayElement(['PC', 'MO', 'TB']);
 
 	const relayAgencyCode = faker.helpers.arrayElement([
-		'RA20250001',
-		'RA20250002',
-		'RA20250003',
-		'RA20250004',
-		'RA20250005',
+		'ra20250001',
+		'ra20250002',
+		'ra20250003',
+		'ra20250004',
+		'ra20250005',
 	]);
 
 	const consentTitles = [
@@ -423,7 +430,7 @@ const getAccountsBasic = async (orgCode: string, accountNum: string, accessToken
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json',
-			'x-api-tran-id': generateTIN('AB001'),
+			'x-api-tran-id': generateTIN('S'),
 			'x-api-type': faker.helpers.arrayElement(['regular', 'irregular']),
 			Authorization: `Bearer ${accessToken}`,
 		},
@@ -453,7 +460,7 @@ const getAccountsDetail = async (orgCode: string, accountNum: string, accessToke
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json',
-			'x-api-tran-id': generateTIN('AD001'),
+			'x-api-tran-id': generateTIN('S'),
 			'x-api-type': faker.helpers.arrayElement(['regular', 'irregular']),
 			Authorization: `Bearer ${accessToken}`,
 		},

@@ -36,7 +36,7 @@ async function main() {
 				lastName: lastName,
 				phoneNumber: '+8210' + faker.string.numeric(8),
 				pinCode: pinCode,
-				orgCode: faker.helpers.arrayElement(['ORG2025001', 'ORG2025002']), // Use the org_code generated above
+				orgCode: faker.helpers.arrayElement(['bond123456', 'anya123456']), // Use the org_code generated above
 				accountType: faker.helpers.arrayElement(['TYPE_1001']), // Deposit Account
 				accountStatus: faker.helpers.arrayElement(['STATUS_01', 'STATUS_02', 'STATUS_03']),
 				prodName: faker.helpers.arrayElement([
