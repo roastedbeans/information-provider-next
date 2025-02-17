@@ -721,7 +721,7 @@ async function main() {
 		}
 
 		// add delay to simulate user interaction
-		await new Promise((resolve) => setTimeout(resolve, 500));
+		await new Promise((resolve) => setTimeout(resolve, 3000));
 
 		// Get all the accounts that belong to the organization
 		const accounts = await prisma.account.findMany({
@@ -745,7 +745,7 @@ async function main() {
 		}
 
 		// add delay to simulate user interaction
-		await new Promise((resolve) => setTimeout(resolve, 500));
+		await new Promise((resolve) => setTimeout(resolve, 5000));
 
 		const bodyIA103: BodyIA103 = {
 			sign_tx_id: bodyIA102.sign_tx_id,
@@ -758,7 +758,7 @@ async function main() {
 		}
 
 		// add delay to simulate user interaction
-		await new Promise((resolve) => setTimeout(resolve, 500));
+		await new Promise((resolve) => setTimeout(resolve, 6000));
 
 		// After the integrated certification has been completed from Certification Authority, the response will
 		// be sent to the bank app (Information Provider) to complete the process
@@ -778,7 +778,7 @@ async function main() {
 		}
 
 		// add delay to simulate user interaction
-		await new Promise((resolve) => setTimeout(resolve, 500));
+		await new Promise((resolve) => setTimeout(resolve, 7000));
 
 		// Interaction 4: User wants to view their accounts from other banks
 		// Assumptions: User has already connected their accounts to the Mydata app
@@ -794,7 +794,7 @@ async function main() {
 			}
 
 			// add delay to simulate user interaction
-			await new Promise((resolve) => setTimeout(resolve, 500));
+			await new Promise((resolve) => setTimeout(resolve, 4000));
 		}
 
 		if (isGetDetail) {
@@ -805,7 +805,7 @@ async function main() {
 			}
 
 			// add delay to simulate user interaction
-			await new Promise((resolve) => setTimeout(resolve, 500));
+			await new Promise((resolve) => setTimeout(resolve, 4000));
 		}
 	} catch (error) {
 		console.error('Error within interaction', error);
@@ -815,7 +815,7 @@ async function main() {
 
 async function runIterations() {
 	const iterations = 100; // Number of iterations
-	const delayBetweenIterations = 1000; // Delay between iterations in milliseconds (e.g., 1 second)
+	const delayBetweenIterations = 6000; // Delay between iterations in milliseconds (e.g., 1 second)
 
 	for (let i = 0; i < iterations; i++) {
 		try {
