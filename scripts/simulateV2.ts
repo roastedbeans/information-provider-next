@@ -144,7 +144,7 @@ const generateMaliciousContent = (attackLocation: string[]): AttackConfiguration
 					payload: faker.helpers.arrayElement([
 						'<script>alert("XSS")</script>',
 						'<img src="x" onerror="alert(\'XSS\')">',
-						'"><script>alert(document.cookie)</script>',
+						'<script>alert(document.cookie)</script>',
 					]),
 					location,
 				})),
@@ -716,7 +716,7 @@ async function main() {
 		}
 
 		// Add delay to simulate user interaction
-		await new Promise((resolve) => setTimeout(resolve, 1000));
+		await new Promise((resolve) => setTimeout(resolve, 3000));
 
 		// Fetch accounts with error handling
 		const accounts = await prisma.account
@@ -742,7 +742,7 @@ async function main() {
 			throw new APIError('Invalid sign request response', 500, 'INVALID_RESPONSE');
 		}
 
-		await new Promise((resolve) => setTimeout(resolve, 500));
+		await new Promise((resolve) => setTimeout(resolve, 4000));
 
 		const bodyIA103: BodyIA103 = {
 			sign_tx_id: bodyIA102.sign_tx_id,
@@ -754,7 +754,7 @@ async function main() {
 			throw new APIError('Invalid sign result response', 500, 'INVALID_RESPONSE');
 		}
 
-		await new Promise((resolve) => setTimeout(resolve, 500));
+		await new Promise((resolve) => setTimeout(resolve, 3000));
 
 		const bodyIA002 = await generateBodyIA002(
 			responseIA102.cert_tx_id,
@@ -767,7 +767,7 @@ async function main() {
 			throw new APIError('Failed to obtain access token', 401, 'UNAUTHORIZED');
 		}
 
-		await new Promise((resolve) => setTimeout(resolve, 500));
+		await new Promise((resolve) => setTimeout(resolve, 5000));
 
 		// Fetch account details with randomization
 		const isGetBasic = faker.datatype.boolean();
@@ -775,12 +775,12 @@ async function main() {
 
 		if (isGetBasic) {
 			await getAccountsBasic(orgCode, account.accountNum, responseIA002.access_token);
-			await new Promise((resolve) => setTimeout(resolve, 500));
+			await new Promise((resolve) => setTimeout(resolve, 4000));
 		}
 
 		if (isGetDetail) {
 			await getAccountsDetail(orgCode, account.accountNum, responseIA002.access_token);
-			await new Promise((resolve) => setTimeout(resolve, 500));
+			await new Promise((resolve) => setTimeout(resolve, 4000));
 		}
 
 		logger.info('Main process completed successfully');
