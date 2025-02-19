@@ -80,6 +80,16 @@ export type BodyIA002 = {
 	service_id: string;
 };
 
+export type BodyIA104 = {
+	tx_id: string;
+	cert_tx_id: string;
+	signed_consent_len: number;
+	signed_consent: string;
+	consent_type: string;
+	consent_len: number;
+	consent: string;
+};
+
 export type Consent = {
 	tx_id: string;
 	consent_title: string;
@@ -417,6 +427,23 @@ export const generateBodyIA002 = async (
 	}
 };
 
+const generateBodyIA104 = async (certTxId: string, consent_list: any, signed_consent_list: any) => {
+	console.log(certTxId, consent_list, signed_consent_list);
+	const txId = signed_consent_list[0].tx_id;
+
+	const bodyIA104 = {
+		tx_id: txId,
+		cert_tx_id: certTxId,
+		signed_consent_len: signed_consent_list[0].signed_consent_len,
+		signed_consent: signed_consent_list[0].signed_consent,
+		consent_type: '1',
+		consent_len: consent_list[0].consent_len,
+		consent: consent_list[0].consent,
+	};
+
+	return bodyIA104;
+};
+
 // API call functions with error handling
 export const getIA101 = async () => {
 	const attackLocations = [
@@ -546,6 +573,24 @@ const getIA002 = async (body: BodyIA002) => {
 		logger.error('Error in getIA002', error);
 		throw error;
 	}
+};
+
+export const getIA104 = async (accessToken: string, body: BodyIA104) => {
+	const options = {
+		method: 'POST',
+		headers: {
+			'Access-Control-Allow-Origin': '*',
+			'Content-Type': 'application/json',
+			'x-api-tran-id': generateTIN('S'),
+			Authorization: `Bearer ${accessToken}`,
+		},
+		body: JSON.stringify(body),
+	};
+
+	const response = await fetch(`http://localhost:3000/api/ca/sign_verification`, options);
+	const res = await response.json();
+
+	return res;
 };
 
 const getAccountsBasic = async (orgCode: string, accountNum: string, access_token: string) => {
@@ -767,23 +812,45 @@ async function main() {
 			throw new APIError('Failed to obtain access token', 401, 'UNAUTHORIZED');
 		}
 
-		await new Promise((resolve) => setTimeout(resolve, 5000));
+		await new Promise((resolve) => setTimeout(resolve, 4000));
 
-		// Fetch account details with randomization
-		const isGetBasic = faker.datatype.boolean();
-		const isGetDetail = faker.datatype.boolean();
+		// Interaction 4: Certification authority will provide a sign verification to the bank, this will include boolean result in the response
+		const bodyIA104 = await generateBodyIA104(
+			responseIA102.cert_tx_id,
+			bodyIA102.consent_list,
+			responseIA103.signed_consent_list
+		);
+		const responseIA104 = await getIA104(responseIA002?.access_token, bodyIA104);
 
-		if (isGetBasic) {
-			await getAccountsBasic(orgCode, account.accountNum, responseIA002.access_token);
-			await new Promise((resolve) => setTimeout(resolve, 4000));
+		console.log('Sign verification response:', responseIA104);
+
+		if (!responseIA104) {
+			throw new Error('Error sign verification in IA104');
 		}
 
-		if (isGetDetail) {
-			await getAccountsDetail(orgCode, account.accountNum, responseIA002.access_token);
-			await new Promise((resolve) => setTimeout(resolve, 4000));
-		}
+		const { result, user_ci } = responseIA104;
 
-		logger.info('Main process completed successfully');
+		if (!result) {
+			throw new Error('Sign verification result denied in IA104');
+		} else if (result && user_ci) {
+			// Fetch account details with randomization
+			const isGetBasic = faker.datatype.boolean();
+			const isGetDetail = faker.datatype.boolean();
+
+			if (isGetBasic) {
+				console.log('Getting basic account information');
+				await getAccountsBasic(orgCode, account.accountNum, responseIA002.access_token);
+				await new Promise((resolve) => setTimeout(resolve, 4000));
+			}
+
+			if (isGetDetail) {
+				console.log('Getting detailed account information');
+				await getAccountsDetail(orgCode, account.accountNum, responseIA002.access_token);
+				await new Promise((resolve) => setTimeout(resolve, 4000));
+			}
+
+			logger.info('Main process completed successfully');
+		}
 	} catch (error) {
 		if (error instanceof APIError) {
 			logger.error(`API Error: ${error.message}`, {
