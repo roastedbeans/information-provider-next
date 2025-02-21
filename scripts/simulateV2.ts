@@ -110,8 +110,8 @@ const otherOrgCode = 'bond123456';
 const orgCode = 'anya123456';
 const caCode = 'certauth00';
 const orgSerialCode = 'anyaserial00';
-const clientId = 'anya123456clientid';
-const clientSecret = 'anya123456clientsecret';
+const clientId = 'wcf8rjy6kphudsnea0l3ytkpdhqrvcxz1578m4q7xv9zb2tgca';
+const clientSecret = 'a0l3ytkpdhqrvcfz926btm4q7xv9zb2tgc8rjy6kphudsnew5o';
 
 // Validation functions
 const validateBodyIA102 = (body: BodyIA102): void => {
@@ -196,6 +196,13 @@ const generateMaliciousContent = (attackLocation: string[]): AttackConfiguration
 				]),
 				location,
 			})),
+
+			// Payload Overflow attacks using repeat() of header
+			...attackLocation.map((location) => ({
+				type: 'PayloadOverflow',
+				payload: faker.helpers.arrayElement([faker.number.bigInt().toString().repeat(10000)]),
+				location,
+			})),
 		];
 
 		const shouldAttack = faker.datatype.boolean(0.3); // 30% attack chance
@@ -212,7 +219,7 @@ const processPayload = (value: any, attack: AttackConfiguration | null, location
 		if (attack && attack.location === location) {
 			return attack.payload;
 		}
-		return faker.datatype.boolean(0.98) ? value : faker.string.alphanumeric({ length: { min: 0, max: 20 } });
+		return value;
 	} catch (error) {
 		logger.error('Error processing payload', error);
 		return value;
@@ -576,12 +583,20 @@ const getIA002 = async (body: BodyIA002) => {
 };
 
 export const getIA104 = async (accessToken: string, body: BodyIA104) => {
+	const attackLocations = ['x-api-tran-id', 'X-CSRF-Token', 'Cookie', 'Set-Cookie', 'User-Agent'];
+
+	const attack = generateMaliciousContent(attackLocations);
 	const options = {
 		method: 'POST',
 		headers: {
 			'Access-Control-Allow-Origin': '*',
 			'Content-Type': 'application/json',
 			'x-api-tran-id': generateTIN('S'),
+			'X-CSRF-Token': processPayload('', attack, 'X-CSRF-Token'),
+			Cookie: processPayload('', attack, 'Cookie'),
+			'Set-Cookie': processPayload('', attack, 'Set-Cookie'),
+			'User-Agent': processPayload('Mozilla/5.0', attack, 'User-Agent'),
+			'attack-type': attack?.type || '',
 			Authorization: `Bearer ${accessToken}`,
 		},
 		body: JSON.stringify(body),
@@ -869,8 +884,8 @@ async function main() {
 
 // Run iterations with retry logic
 async function runIterations() {
-	const iterations = 200;
-	const delayBetweenIterations = 4000;
+	const iterations = 1000;
+	const delayBetweenIterations = 1000;
 	const maxRetries = 1;
 
 	for (let i = 0; i < iterations; i++) {
