@@ -40,10 +40,8 @@ const logger = {
 export const generateTIN = (subject: string): string => {
 	//subject classification code
 	try {
-		const date = new Date();
 		// grant code 10 uppercase letters + numbers
 		const grantCode = faker.string.alphanumeric(14).toUpperCase();
-
 		const xApiTranId = `${orgCode}${subject}${grantCode}`;
 
 		return xApiTranId;

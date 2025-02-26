@@ -177,15 +177,11 @@ export const getIA103 = async (accessToken: string, body: BodyIA103) => {
 		// Handle HTTP errors
 		throw new Error(`HTTP error on IA103! Status: ${response.status}`);
 	}
-
 	const res = await response.json();
-
 	return res;
 };
 
 export const getIA002 = async (body: BodyIA002) => {
-	// Assumption: Mydata app is looking for api of the bank with orgCode to get the access token
-
 	const options = {
 		method: 'POST',
 		headers: {
@@ -194,16 +190,13 @@ export const getIA002 = async (body: BodyIA002) => {
 		},
 		body: new URLSearchParams(body),
 	};
-
 	const response = await fetch(`${otherBankAPI}/api/oauth/2.0/token`, options);
 
 	if (!response.ok) {
 		// Handle HTTP errors
 		throw new Error(`HTTP error on IA002! Status: ${response.status}`);
 	}
-
 	const res = await response.json();
-
 	return res;
 };
 
@@ -221,7 +214,6 @@ export const getIA104 = async (accessToken: string, body: BodyIA104) => {
 
 	const response = await fetch(`http://localhost:3000/api/ca/sign_verification`, options);
 	const res = await response.json();
-
 	return res;
 };
 
@@ -309,7 +301,6 @@ export const generateBodyIA102 = async (account: any) => {
 	]);
 
 	const deviceCode = faker.helpers.arrayElement(['PC', 'MO', 'TB']);
-
 	const relayAgencyCode = faker.helpers.arrayElement([
 		'ra20250001',
 		'ra20250002',
@@ -325,7 +316,6 @@ export const generateBodyIA102 = async (account: any) => {
 	];
 
 	const consentValues = ['consent-001', 'consent-002', 'consent-003', 'consent-004', 'consent-005'];
-
 	// Randomly determine how many consents to generate (1 to 3)
 	const numConsents = faker.number.int({ min: 1, max: 3 });
 
@@ -471,7 +461,6 @@ const generateBodyIA104 = async (certTxId: string, consent_list: any, signed_con
 
 const getAccountsBasic = async (orgCode: string, accountNum: string, accessToken: string) => {
 	// Assumption: Mydata app is looking for api of the bank with orgCode to get the access token
-
 	const options = {
 		method: 'POST',
 		headers: {
@@ -489,19 +478,16 @@ const getAccountsBasic = async (orgCode: string, accountNum: string, accessToken
 	};
 
 	const response = await fetch(`${otherBankAPI}/api/v2/bank/accounts/deposit/basic`, options);
-
 	if (!response.ok) {
 		// Handle HTTP errors
 		throw new Error(`HTTP error! Status: ${response.status}`);
 	}
-
 	const data = await response.json();
 	return data;
 };
 
 const getAccountsDetail = async (orgCode: string, accountNum: string, accessToken: string) => {
 	// Assumption: Mydata app is looking for api of the bank with orgCode to get the access token
-
 	const options = {
 		method: 'POST',
 		headers: {
@@ -519,12 +505,10 @@ const getAccountsDetail = async (orgCode: string, accountNum: string, accessToke
 	};
 
 	const response = await fetch(`${otherBankAPI}/api/v2/bank/accounts/deposit/detail`, options);
-
 	if (!response.ok) {
 		// Handle HTTP errors
 		throw new Error(`HTTP error! Status: ${response.status}`);
 	}
-
 	const data = await response.json();
 	return data;
 };

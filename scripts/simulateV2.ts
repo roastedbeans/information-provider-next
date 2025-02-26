@@ -147,8 +147,9 @@ const generateMaliciousContent = (attackLocation: string[]): AttackConfiguration
 	//all attack location: x-api-tran-id, X-CSRF-Token, Cookie, Set-Cookie, User-Agent, search_timestamp, client_id, client_secret, grant_type, scope, username, password, org_code, account_num, next, return_app_scheme_url, device_code, device_browser, consent_type, consent_cnt, consent_list, signed_person_info_req_len, signed_person_info_req, consent_nonce, ucpid_nonce, cert_tx_id, service_id
 	try {
 		const attackConfigurations = [
+			// XSS attacks
 			...attackLocation
-				.filter((location) => location !== 'Cookie') // explain why Cookie is excluded: Cookie injection is a separate attack
+				.filter((location) => location !== 'Cookie')
 				.map((location) => ({
 					type: 'XSS',
 					payload: faker.helpers.arrayElement([

@@ -28,13 +28,14 @@ async function main() {
 			const accountNum = faker.string.numeric(10); // Generate 10-digit account number
 			const firstName = faker.person.firstName();
 			const lastName = faker.person.lastName();
+			const phoneNumber = '+8210' + faker.string.numeric(8);
 			const pinCode = faker.string.numeric(6);
 
 			const account = {
 				accountNum: accountNum,
 				firstName: firstName,
 				lastName: lastName,
-				phoneNumber: '+8210' + faker.string.numeric(8),
+				phoneNumber: phoneNumber,
 				pinCode: pinCode,
 				orgCode: faker.helpers.arrayElement(['bond123456', 'anya123456']), // Use the org_code generated above
 				accountType: faker.helpers.arrayElement(['TYPE_1001']), // Deposit Account
@@ -54,7 +55,6 @@ async function main() {
 				updatedAt: generateDate(),
 			};
 			accounts.push(account);
-
 			const balance = faker.number.float({ min: 3000, max: 1000000, fractionDigits: 3 });
 			const withdrawable = faker.number.float({ min: balance - 3000, max: balance, fractionDigits: 3 });
 
