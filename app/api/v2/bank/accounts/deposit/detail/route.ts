@@ -111,7 +111,7 @@ export async function POST(req: NextRequest) {
 			rsp_msg: getResponseMessage('SUCCESS').message,
 			search_timestamp: timestamp,
 			detail_cnt: detailList.length,
-			detailList: detailList,
+			detail_list: detailList,
 		};
 
 		await logger(JSON.stringify(request), JSON.stringify(body), JSON.stringify(responseData), '200');

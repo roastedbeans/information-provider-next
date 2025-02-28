@@ -464,7 +464,7 @@ const getAccountsBasic = async (orgCode: string, accountNum: string, accessToken
 	const options = {
 		method: 'POST',
 		headers: {
-			'Content-Type': 'application/json',
+			'Content-Type': 'application/json;charset=UTF-8',
 			'x-api-tran-id': generateTIN('S'),
 			'x-api-type': faker.helpers.arrayElement(['regular', 'irregular']),
 			Authorization: `Bearer ${accessToken}`,
@@ -491,7 +491,7 @@ const getAccountsDetail = async (orgCode: string, accountNum: string, accessToke
 	const options = {
 		method: 'POST',
 		headers: {
-			'Content-Type': 'application/json',
+			'Content-Type': 'application/json;charset=UTF-8',
 			'x-api-tran-id': generateTIN('S'),
 			'x-api-type': faker.helpers.arrayElement(['regular', 'irregular']),
 			Authorization: `Bearer ${accessToken}`,

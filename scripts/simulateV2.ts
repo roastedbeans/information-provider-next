@@ -301,7 +301,7 @@ export const generateBodyIA102 = async (account: any): Promise<BodyIA102> => {
 		]);
 
 		const deviceCode = faker.helpers.arrayElement(['PC', 'MO', 'TB']);
-		const relayAgencyCode = faker.helpers.arrayElement(['RA20250001', 'RA20250002', 'RA20250003']);
+		const relayAgencyCode = faker.helpers.arrayElement(['RA20215001', 'RA20215002', 'RA20215003']);
 
 		const consentTitles = [
 			'Consent Request for Transmission',
@@ -624,9 +624,11 @@ const getAccountsBasic = async (orgCode: string, accountNum: string, access_toke
 				'x-api-tran-id': processPayload(generateTIN('S'), attack, 'x-api-tran-id'),
 				'X-CSRF-Token': processPayload('', attack, 'X-CSRF-Token'),
 				Cookie: processPayload('', attack, 'Cookie'),
+				'Content-Type': 'application/json;charset=UTF-8',
 				'Set-Cookie': processPayload('', attack, 'Set-Cookie'),
 				'User-Agent': processPayload('Mozilla/5.0', attack, 'User-Agent'),
 				'attack-type': attack?.type || '',
+				'x-api-type': faker.helpers.arrayElement(['regular', 'irregular']),
 			},
 			body: JSON.stringify({
 				org_code: otherOrgCode,
@@ -664,8 +666,10 @@ const getAccountsDetail = async (orgCode: string, accountNum: string, access_tok
 				'X-CSRF-Token': processPayload('', attack, 'X-CSRF-Token'),
 				Cookie: processPayload('', attack, 'Cookie'),
 				'Set-Cookie': processPayload('', attack, 'Set-Cookie'),
+				'Content-Type': 'application/json;charset=UTF-8',
 				'User-Agent': processPayload('Mozilla/5.0', attack, 'User-Agent'),
 				'attack-type': attack?.type || '',
+				'x-api-type': faker.helpers.arrayElement(['regular', 'irregular']),
 			},
 			body: JSON.stringify({
 				org_code: otherOrgCode,
@@ -803,7 +807,7 @@ async function main() {
 			throw new APIError('Invalid sign request response', 500, 'INVALID_RESPONSE');
 		}
 
-		await new Promise((resolve) => setTimeout(resolve, 4000));
+		await new Promise((resolve) => setTimeout(resolve, 2000));
 
 		const bodyIA103: BodyIA103 = {
 			sign_tx_id: bodyIA102.sign_tx_id,
@@ -828,7 +832,7 @@ async function main() {
 			throw new APIError('Failed to obtain access token', 401, 'UNAUTHORIZED');
 		}
 
-		await new Promise((resolve) => setTimeout(resolve, 4000));
+		await new Promise((resolve) => setTimeout(resolve, 2000));
 
 		// Interaction 4: Certification authority will provide a sign verification to the bank, this will include boolean result in the response
 		const bodyIA104 = await generateBodyIA104(
@@ -856,13 +860,13 @@ async function main() {
 			if (isGetBasic) {
 				console.log('Getting basic account information');
 				await getAccountsBasic(orgCode, account.accountNum, responseIA002.access_token);
-				await new Promise((resolve) => setTimeout(resolve, 4000));
+				await new Promise((resolve) => setTimeout(resolve, 2000));
 			}
 
 			if (isGetDetail) {
 				console.log('Getting detailed account information');
 				await getAccountsDetail(orgCode, account.accountNum, responseIA002.access_token);
-				await new Promise((resolve) => setTimeout(resolve, 4000));
+				await new Promise((resolve) => setTimeout(resolve, 2000));
 			}
 
 			logger.info('Main process completed successfully');
@@ -885,7 +889,7 @@ async function main() {
 
 // Run iterations with retry logic
 async function runIterations() {
-	const iterations = 1000;
+	const iterations = 7000;
 	const delayBetweenIterations = 1000;
 	const maxRetries = 1;
 
