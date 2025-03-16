@@ -125,8 +125,8 @@ export const getIA101 = async () => {
 			throw new Error(`HTTP error! Status: ${response.status}`);
 		}
 
-		const data = await response.json();
-		return data;
+		const res = await response.json();
+		return res;
 	} catch (error) {
 		console.error('Error:', error);
 		throw error;
@@ -139,7 +139,7 @@ export const getIA102 = async (accessToken: string, body: BodyIA102) => {
 		method: 'POST',
 		headers: {
 			'Access-Control-Allow-Origin': '*',
-			'Content-Type': 'application/json',
+			'Content-Type': 'application/json;charset=UTF-8',
 			'x-api-tran-id': generateTIN('S'),
 			Authorization: `Bearer ${accessToken}`,
 		},
@@ -164,7 +164,7 @@ export const getIA103 = async (accessToken: string, body: BodyIA103) => {
 		method: 'POST',
 		headers: {
 			'Access-Control-Allow-Origin': '*',
-			'Content-Type': 'application/json',
+			'Content-Type': 'application/json;charset=UTF-8',
 			'x-api-tran-id': generateTIN('S'),
 			Authorization: `Bearer ${accessToken}`,
 		},
@@ -205,7 +205,7 @@ export const getIA104 = async (accessToken: string, body: BodyIA104) => {
 		method: 'POST',
 		headers: {
 			'Access-Control-Allow-Origin': '*',
-			'Content-Type': 'application/json',
+			'Content-Type': 'application/json;charset=UTF-8',
 			'x-api-tran-id': generateTIN('S'),
 			Authorization: `Bearer ${accessToken}`,
 		},
@@ -224,6 +224,7 @@ export async function getSupport001() {
 			headers: {
 				'Content-Type': 'application/x-www-form-urlencoded',
 				'x-api-tran-id': generateTIN('S'),
+				Authorization: '',
 			},
 			body: new URLSearchParams({
 				grant_type: 'client_credentials',
@@ -249,15 +250,15 @@ export async function getSupport001() {
 }
 
 export async function getSupport002() {
-	const token = await getSupport001();
+	const support001Response = await getSupport001();
 
-	const { access_token } = token;
+	const { access_token } = support001Response?.body;
 
 	const options = {
 		method: 'GET',
 		headers: {
 			'Access-Control-Allow-Origin': '*',
-			'Content-Type': 'application/json',
+			'Content-Type': 'application/json;charset=UTF-8',
 			'x-api-tran-id': generateTIN('S'),
 			Authorization: `Bearer ${access_token}`,
 		},
@@ -355,7 +356,7 @@ export const generateBodyIA102 = async (account: any) => {
 export const generateBodyIA002 = async (certTxId: string, consent_list: any, signed_consent_list: any) => {
 	// Assumed that signed_consent is already decoded from base64
 
-	const txId = signed_consent_list[0].tx_id;
+	const txId = signed_consent_list[0]?.tx_id;
 
 	const orgCode = txId.split('_')[0];
 	const ipCode = txId.split('_')[1];
@@ -443,7 +444,6 @@ export const generateBodyIA002 = async (certTxId: string, consent_list: any, sig
 };
 
 const generateBodyIA104 = async (certTxId: string, consent_list: any, signed_consent_list: any) => {
-	console.log(certTxId, consent_list, signed_consent_list);
 	const txId = signed_consent_list[0].tx_id;
 
 	const bodyIA104 = {
@@ -464,7 +464,7 @@ const getAccountsBasic = async (orgCode: string, accountNum: string, accessToken
 	const options = {
 		method: 'POST',
 		headers: {
-			'Content-Type': 'application/json',
+			'Content-Type': 'application/json;charset=UTF-8',
 			'x-api-tran-id': generateTIN('S'),
 			'x-api-type': faker.helpers.arrayElement(['regular', 'irregular']),
 			Authorization: `Bearer ${accessToken}`,
@@ -491,7 +491,7 @@ const getAccountsDetail = async (orgCode: string, accountNum: string, accessToke
 	const options = {
 		method: 'POST',
 		headers: {
-			'Content-Type': 'application/json',
+			'Content-Type': 'application/json;charset=UTF-8',
 			'x-api-tran-id': generateTIN('S'),
 			'x-api-type': faker.helpers.arrayElement(['regular', 'irregular']),
 			Authorization: `Bearer ${accessToken}`,
@@ -542,8 +542,9 @@ async function main() {
 	// Consent List: "Consent Request for Transmission", "Consent to Collection and Use of Personal Information", "Consent to Provide Personal Information"
 
 	try {
-		const token = await getIA101();
-		const { access_token } = token;
+		const IA101Response = await getIA101();
+
+		const { access_token } = IA101Response?.body;
 
 		if (!access_token) {
 			throw new Error('Error fetching access token in IA101');
@@ -578,7 +579,7 @@ async function main() {
 
 		const bodyIA103: BodyIA103 = {
 			sign_tx_id: bodyIA102.sign_tx_id,
-			cert_tx_id: responseIA102.cert_tx_id,
+			cert_tx_id: responseIA102?.body?.cert_tx_id,
 		};
 
 		const responseIA103 = await getIA103(access_token, bodyIA103);
@@ -594,9 +595,9 @@ async function main() {
 		// this will provide access_token to allow access to the user's data
 		// Interaction 3: User wants to access their data from other banks
 
-		const certTxId = responseIA102.cert_tx_id;
-		const signedConsentList = responseIA103.signed_consent_list;
-		const consentList = bodyIA102.consent_list;
+		const certTxId = responseIA102?.body?.cert_tx_id;
+		const signedConsentList = responseIA103?.body?.signed_consent_list;
+		const consentList = bodyIA102?.consent_list;
 
 		const bodyIA002 = await generateBodyIA002(certTxId, consentList, signedConsentList);
 		const responseIA002 = await getIA002(bodyIA002);
@@ -608,15 +609,13 @@ async function main() {
 		await new Promise((resolve) => setTimeout(resolve, 2000));
 		// Interaction 4: Certification authority will provide a sign verification to the bank, this will include boolean result in the response
 		const bodyIA104 = await generateBodyIA104(certTxId, consentList, signedConsentList);
-		const responseIA104 = await getIA104(responseIA002?.access_token, bodyIA104);
-
-		console.log('Sign verification response:', responseIA104);
+		const responseIA104 = await getIA104(responseIA002?.body?.access_token, bodyIA104);
 
 		if (!responseIA104) {
 			throw new Error('Error sign verification in IA104');
 		}
 
-		const { result, user_ci } = responseIA104;
+		const { result, user_ci } = responseIA104?.body;
 
 		if (!result) {
 			throw new Error('Sign verification result denied in IA104');
