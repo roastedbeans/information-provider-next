@@ -69,13 +69,13 @@ export type SignedConsent = {
 
 // Initialize Prisma and constants
 const prisma = new PrismaClient();
-const otherBankAPI = process.env.OTHER_BANK_API || '';
-const otherOrgCode = process.env.OTHER_ORG_CODE || '';
-const orgCode = process.env.ORG_CODE || '';
+const otherBankAPI = process.env.BOND_BANK_API || '';
+const otherOrgCode = process.env.BOND_ORG_CODE || '';
+const orgCode = process.env.ANYA_ORG_CODE || '';
 const caCode = process.env.CA_CODE || '';
-const orgSerialCode = process.env.ORG_SERIAL_CODE || '';
-const clientId = process.env.CLIENT_ID || '';
-const clientSecret = process.env.CLIENT_SECRET || '';
+const orgSerialCode = process.env.ANYA_ORG_SERIAL_CODE || '';
+const clientId = process.env.ANYA_CLIENT_ID || '';
+const clientSecret = process.env.ANYA_CLIENT_SECRET || '';
 
 export const generateTIN = (subject: string): string => {
 	//subject classification code
@@ -633,7 +633,7 @@ async function main() {
 			if (isGetBasic) {
 				// Call for basic account information
 				console.log('Getting basic account information');
-				const accountsBasic = await getAccountsBasic(orgCode, accountNum, responseIA002.access_token);
+				const accountsBasic = await getAccountsBasic(orgCode, accountNum, responseIA002.body.access_token);
 				if (!accountsBasic) {
 					throw new Error('Error fetching basic account information');
 				}
@@ -645,7 +645,7 @@ async function main() {
 			if (isGetDetail) {
 				// Call for detailed account information
 				console.log('Getting detailed account information');
-				const accountsDetail = await getAccountsDetail(orgCode, accountNum, responseIA002.access_token);
+				const accountsDetail = await getAccountsDetail(orgCode, accountNum, responseIA002.body.access_token);
 				if (!accountsDetail) {
 					throw new Error('Error fetching detailed account information');
 				}
