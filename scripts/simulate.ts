@@ -69,13 +69,13 @@ export type SignedConsent = {
 
 // Initialize Prisma and constants
 const prisma = new PrismaClient();
-const otherBankAPI = 'http://localhost:4200';
-const otherOrgCode = 'bond123456';
-const orgCode = 'anya123456';
-const caCode = 'certauth00';
-const orgSerialCode = 'anyaserial00';
-const clientId = 'wcf8rjy6kphudsnea0l3ytkpdhqrvcxz1578m4q7xv9zb2tgca';
-const clientSecret = 'a0l3ytkpdhqrvcfz926btm4q7xv9zb2tgc8rjy6kphudsnew5o';
+const otherBankAPI = process.env.OTHER_BANK_API || '';
+const otherOrgCode = process.env.OTHER_ORG_CODE || '';
+const orgCode = process.env.ORG_CODE || '';
+const caCode = process.env.CA_CODE || '';
+const orgSerialCode = process.env.ORG_SERIAL_CODE || '';
+const clientId = process.env.CLIENT_ID || '';
+const clientSecret = process.env.CLIENT_SECRET || '';
 
 export const generateTIN = (subject: string): string => {
 	//subject classification code

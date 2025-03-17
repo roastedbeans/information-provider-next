@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
 	const query = Object.fromEntries(req.nextUrl.searchParams);
 
 	const body = await req.json();
-	const { org_code, account_num, next, search_timestamp } = body;
+	const { org_code: _org_code, account_num, next: _next, search_timestamp: _search_timestamp } = body;
 
 	const request = {
 		method,
