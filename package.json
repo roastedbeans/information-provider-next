@@ -9,10 +9,10 @@
 		"start": "next start",
 		"lint": "next lint",
 		"seedAccount": "ts-node scripts/seedAccount.ts",
-		"simulate": "ts-node scripts/simulateV2.ts",
-		"simulateNormal": "ts-node scripts/simulate.ts",
-		"attack": "ts-node scripts/attackSimulate.ts",
-		"attackRateLimit": "ts-node scripts/simulateRateOverflow.ts"
+		"simulate": "npx tsx scripts/simulateV2.ts",
+		"simulateNormal": "npx tsx scripts/simulate.ts",
+		"attack": "npx tsx scripts/attackSimulate.ts",
+		"attackRateLimit": "npx tsx scripts/simulateRateOverflow.ts"
 	},
 	"dependencies": {
 		"@heroui/button": "^2.2.10",
