@@ -10,7 +10,9 @@
 		"lint": "next lint",
 		"seedAccount": "ts-node scripts/seedAccount.ts",
 		"simulate": "ts-node scripts/simulateV2.ts",
-		"attack": "ts-node scripts/attackSimulate.ts"
+		"simulateNormal": "ts-node scripts/simulate.ts",
+		"attack": "ts-node scripts/attackSimulate.ts",
+		"attackRateLimit": "ts-node scripts/simulateRateOverflow.ts"
 	},
 	"dependencies": {
 		"@heroui/button": "^2.2.10",

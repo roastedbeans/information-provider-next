@@ -5,7 +5,7 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 export const generateBodyIA102 = async () => {
-	const orgCode = faker.helpers.arrayElement(['ORG2025001']);
+	const orgCode = faker.helpers.arrayElement(['anya123456']);
 
 	// Fetch accounts that belong to the organization
 	const accounts = await prisma.account.findMany({
@@ -14,9 +14,9 @@ export const generateBodyIA102 = async () => {
 		},
 	});
 
-	const caCode = faker.helpers.arrayElement(['CA20250001']);
+	const caCode = faker.helpers.arrayElement(['certauth00']);
 	const newTimestamp = timestamp(new Date());
-	const serialNum = faker.helpers.arrayElement(['BASA20240204', 'BABB20230106']);
+	const serialNum = faker.helpers.arrayElement(['bondserial00', 'anyaserial00']);
 
 	const signTxId = `${orgCode}_${caCode}_${newTimestamp}_${serialNum}`;
 
@@ -47,11 +47,11 @@ export const generateBodyIA102 = async () => {
 	const deviceCode = faker.helpers.arrayElement(['PC', 'MO', 'TB']);
 
 	const relayAgencyCode = faker.helpers.arrayElement([
-		'RA20250001',
-		'RA20250002',
-		'RA20250003',
-		'RA20250004',
-		'RA20250005',
+		'ra20250001',
+		'ra20250002',
+		'ra20250003',
+		'ra20250004',
+		'ra20250005',
 	]);
 
 	const consentValues = ['consent-001', 'consent-002', 'consent-003', 'consent-004', 'consent-005'];
