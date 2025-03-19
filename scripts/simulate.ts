@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { faker } from '@faker-js/faker';
 import dayjs from 'dayjs';
+import { logger } from '@/utils/generateCSV';
 
 export type BodyIA102 = {
 	sign_tx_id: string;
@@ -69,13 +70,13 @@ export type SignedConsent = {
 
 // Initialize Prisma and constants
 const prisma = new PrismaClient();
-const otherBankAPI = process.env.BOND_BANK_API || '';
-const otherOrgCode = process.env.BOND_ORG_CODE || '';
-const orgCode = process.env.ANYA_ORG_CODE || '';
+const otherBankAPI = process.env.BOND_BANK_API || process.env.ANYA_BANK_API || '';
+const otherOrgCode = process.env.BOND_ORG_CODE || process.env.ANYA_ORG_CODE || '';
+const orgCode = process.env.ANYA_ORG_CODE || process.env.BOND_ORG_CODE || '';
 const caCode = process.env.CA_CODE || '';
-const orgSerialCode = process.env.ANYA_ORG_SERIAL_CODE || '';
-const clientId = process.env.ANYA_CLIENT_ID || '';
-const clientSecret = process.env.ANYA_CLIENT_SECRET || '';
+const orgSerialCode = process.env.ANYA_ORG_SERIAL_CODE || process.env.BOND_ORG_SERIAL_CODE || '';
+const clientId = process.env.ANYA_CLIENT_ID || process.env.BOND_CLIENT_ID || '';
+const clientSecret = process.env.ANYA_CLIENT_SECRET || process.env.BOND_CLIENT_SECRET || '';
 
 export const generateTIN = (subject: string): string => {
 	//subject classification code
@@ -660,7 +661,7 @@ async function main() {
 	}
 }
 
-async function runIterations() {
+export async function runIterations() {
 	const iterations = 100; // Number of iterations
 	const delayBetweenIterations = 1000; // Delay between iterations in milliseconds (e.g., 1 second)
 
@@ -687,4 +688,5 @@ runIterations()
 	})
 	.finally(async () => {
 		await prisma.$disconnect();
+		console.log('Prisma disconnected successfully');
 	});
