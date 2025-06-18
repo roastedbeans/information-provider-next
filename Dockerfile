@@ -28,8 +28,34 @@ RUN npm run build
 FROM base AS runner
 WORKDIR /app
 
-ENV NODE_ENV production
-ENV NEXT_TELEMETRY_DISABLED 1
+# Environment variables
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV PORT=4000
+ENV HOSTNAME=0.0.0.0
+
+# Application configuration
+ENV CA_API_URL=http://certification-authority:3000
+ENV JWT_SECRET=starlight-anya-jwt-secret
+ENV CA_CODE=certauth00
+
+# Bond Bank configuration
+ENV BOND_BANK_API=http://mydata-operator:4200
+ENV BOND_ORG_CODE=bond123456
+
+# Anya Bank configuration
+ENV ANYA_BANK_API=http://information-provider:4000
+ENV ANYA_ORG_CODE=anya123456
+ENV ANYA_SERIAL_CODE=anyaserial00
+ENV ANYA_CLIENT_ID=wcf8rjy6kphudsnea0l3ytkpdhqrvcxz1578m4q7xv9zb2tgca
+ENV ANYA_CLIENT_SECRET=a0l3ytkpdhqrvcfz926btm4q7xv9zb2tgc8rjy6kphudsnew5o
+
+# Next.js public environment variables
+ENV NEXT_PUBLIC_ANYA_CLIENT_ID=wcf8rjy6kphudsnea0l3ytkpdhqrvcxz1578m4q7xv9zb2tgca
+ENV NEXT_PUBLIC_ANYA_CLIENT_SECRET=a0l3ytkpdhqrvcfz926btm4q7xv9zb2tgc8rjy6kphudsnew5o
+ENV NEXT_PUBLIC_ANYA_ORG_NAME="Anya Bank"
+ENV NEXT_PUBLIC_ANYA_SERIAL_CODE=anyaserial00
+ENV NEXT_PUBLIC_ANYA_ORG_CODE=anya123456
 
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
@@ -53,9 +79,5 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 USER nextjs
 
 EXPOSE 4000
-
-ENV PORT 4000
-# set hostname to localhost
-ENV HOSTNAME "0.0.0.0"
 
 CMD ["node", "server.js"] 
